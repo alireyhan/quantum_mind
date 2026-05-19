@@ -27,7 +27,7 @@ def generate_session_task(self, session_id: int):
     On failure: credits are refunded and the session is marked failed.
     """
     # ── Lazy imports to avoid circular deps ──────────────────────────────
-    from services.ai_service import ClaudeService
+    from services.ai_service import OpenAIService
     from services.audio_service import AudioService
     from services.storage_service import StorageService
     from services.template_service import PromptTemplateEngine
@@ -104,7 +104,7 @@ def generate_session_task(self, session_id: int):
 
     # ── Phase 2: Generate Script (Claude) ─────────────────────────────────
     try:
-        ai_service = ClaudeService()
+        ai_service = OpenAIService()
         script = asyncio.run(ai_service.generate_script(prompt))
 
         audio_service = AudioService()

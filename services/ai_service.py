@@ -6,35 +6,34 @@ from typing import Dict, Any
 logger = logging.getLogger(__name__)
 
 
-class ClaudeService:
+class OpenAIService:
     """
-    Wraps the Anthropic Claude API to generate hypnotherapy scripts
+    Wraps the OpenAI API to generate hypnotherapy scripts
     and perform problem category diagnosis from intake data.
     """
 
-    MODEL = 'claude-3-5-sonnet-20241022'
-    BASE_URL = 'https://api.anthropic.com/v1/messages'
+    MODEL = 'gpt-4o'
+    BASE_URL = 'https://api.openai.com/v1/chat/completions'
 
     # ── Token budget: ~750 tokens/minute of audio at average speech rate ──
     # 10 min  → ~7,500 tokens   (+ system overhead ~2,000) → 10,000
     # 30 min  → ~22,500 tokens  → 25,000
     # 45 min  → ~33,750 tokens  → 36,000
-    DEFAULT_MAX_TOKENS = 36_000
+    DEFAULT_MAX_TOKENS = 10000 # max_tokens limit for gpt-4o
 
     def __init__(self):
-        self.api_key = settings.ANTHROPIC_API_KEY
+        self.api_key = settings.OPENAI_API_KEY
 
     @property
     def _headers(self) -> Dict[str, str]:
         return {
-            'x-api-key': self.api_key,
-            'anthropic-version': '2023-06-01',
-            'content-type': 'application/json',
+            'Authorization': f'Bearer {self.api_key}',
+            'Content-Type': 'application/json',
         }
 
     async def generate_script(self, prompt: str, max_tokens: int = DEFAULT_MAX_TOKENS) -> str:
         """
-        Send the filled prompt to Claude and return the generated script text.
+        Send the filled prompt to OpenAI and return the generated script text.
         Uses async httpx for non-blocking I/O inside Celery tasks (via asyncio.run).
         """
         payload = {
@@ -49,15 +48,15 @@ class ClaudeService:
             'temperature': 0.7,
         }
 
-        logger.info('Sending prompt to Claude (%d chars)', len(prompt))
+        logger.info('Sending prompt to OpenAI (%d chars)', len(prompt))
 
         async with httpx.AsyncClient(timeout=180.0) as client:
             response = await client.post(self.BASE_URL, json=payload, headers=self._headers)
             response.raise_for_status()
             data = response.json()
 
-        script = data['content'][0]['text']
-        logger.info('Claude returned script (%d chars)', len(script))
+        script = data['choices'][0]['message']['content']
+        logger.info('OpenAI returned script (%d chars)', len(script))
         return script
 
     def diagnose_problem_category(self, intake_data: Dict[str, Any]) -> str:

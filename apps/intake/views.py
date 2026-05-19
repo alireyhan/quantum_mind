@@ -3,7 +3,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from .models import IntakeResponse
 from .serializers import IntakeResponseSerializer, IntakeResponseListSerializer
-from services.ai_service import ClaudeService
+from services.ai_service import OpenAIService
 
 
 class IntakeCreateView(generics.CreateAPIView):
@@ -12,7 +12,7 @@ class IntakeCreateView(generics.CreateAPIView):
     permission_classes = [IsAuthenticated]
 
     def perform_create(self, serializer):
-        ai_service = ClaudeService()
+        ai_service = OpenAIService()
         data = serializer.validated_data
         # Auto-diagnose the problem category before persisting
         category = ai_service.diagnose_problem_category({

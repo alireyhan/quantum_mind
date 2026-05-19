@@ -136,7 +136,7 @@ CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 minutes max per task
 
 # External APIs
-ANTHROPIC_API_KEY = env('ANTHROPIC_API_KEY', default='')
+OPENAI_API_KEY = env('OPENAI_API_KEY', default='')
 ELEVENLABS_API_KEY = env('ELEVENLABS_API_KEY', default='')
 ELEVENLABS_VOICE_ID = env('ELEVENLABS_VOICE_ID', default='21m00Tcm4TlvDq8ikWAM')
 
