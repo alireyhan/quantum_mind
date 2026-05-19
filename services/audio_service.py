@@ -1,0 +1,145 @@
+import re
+import logging
+from typing import List
+from django.conf import settings
+import httpx
+
+logger = logging.getLogger(__name__)
+
+
+class AudioService:
+    """
+    Handles ElevenLabs TTS generation, text pre-processing,
+    chunk splitting, and MP3 concatenation.
+    """
+
+    MAX_CHUNK_CHARS = 4_500   # ElevenLabs character limit per request
+    MODEL_ID = 'eleven_flash_v2_5'
+
+    def __init__(self):
+        self.api_key = settings.ELEVENLABS_API_KEY
+        self.voice_id = settings.ELEVENLABS_VOICE_ID
+        self.base_url = 'https://api.elevenlabs.io/v1'
+
+    # ── Text Pre-processing ───────────────────────────────────────────────
+
+    def strip_non_spoken_text(self, script: str) -> str:
+        """
+        Remove markdown headers, stage directions, and parentheticals
+        so only the spoken words reach TTS.
+        """
+        # Remove markdown headers (# ## ###)
+        script = re.sub(r'^#{1,6}\s+.*$', '', script, flags=re.MULTILINE)
+        # Remove bracketed stage directions [pause] [deep breath] etc.
+        script = re.sub(r'\[.*?\]', '', script, flags=re.DOTALL)
+        # Remove parenthetical directions (pause here) (slow voice)
+        script = re.sub(r'\(.*?\)', '', script, flags=re.DOTALL)
+        # Remove bold/italic markdown
+        script = re.sub(r'\*{1,3}(.*?)\*{1,3}', r'\1', script)
+        # Remove horizontal rules
+        script = re.sub(r'^---+$', '', script, flags=re.MULTILINE)
+        # Collapse excessive blank lines
+        script = re.sub(r'\n{3,}', '\n\n', script)
+        return script.strip()
+
+    def split_text_into_chunks(self, text: str) -> List[str]:
+        """
+        Split cleaned script at sentence boundaries so each chunk
+        is within the ElevenLabs 4,500 character limit.
+        """
+        # Split on sentence-ending punctuation followed by whitespace
+        sentences = re.split(r'(?<=[.!?…])\s+', text)
+        chunks: List[str] = []
+        current_parts: List[str] = []
+        current_len = 0
+
+        for sentence in sentences:
+            s_len = len(sentence)
+
+            # If a single sentence exceeds the limit, split it further at commas
+            if s_len > self.MAX_CHUNK_CHARS:
+                if current_parts:
+                    chunks.append(' '.join(current_parts))
+                    current_parts = []
+                    current_len = 0
+                sub_parts = re.split(r'(?<=,)\s+', sentence)
+                sub_chunk: List[str] = []
+                sub_len = 0
+                for part in sub_parts:
+                    if sub_len + len(part) > self.MAX_CHUNK_CHARS:
+                        if sub_chunk:
+                            chunks.append(' '.join(sub_chunk))
+                        sub_chunk = [part]
+                        sub_len = len(part)
+                    else:
+                        sub_chunk.append(part)
+                        sub_len += len(part) + 1
+                if sub_chunk:
+                    chunks.append(' '.join(sub_chunk))
+                continue
+
+            if current_len + s_len + 1 > self.MAX_CHUNK_CHARS:
+                if current_parts:
+                    chunks.append(' '.join(current_parts))
+                current_parts = [sentence]
+                current_len = s_len
+            else:
+                current_parts.append(sentence)
+                current_len += s_len + 1
+
+        if current_parts:
+            chunks.append(' '.join(current_parts))
+
+        logger.info('Script split into %d chunks for TTS', len(chunks))
+        return chunks
+
+    # ── ElevenLabs API ────────────────────────────────────────────────────
+
+    async def generate_audio_chunk(self, text: str) -> bytes:
+        """Generate MP3 audio for a single text chunk via ElevenLabs."""
+        url = f'{self.base_url}/text-to-speech/{self.voice_id}'
+
+        headers = {
+            'xi-api-key': self.api_key,
+            'Content-Type': 'application/json',
+            'Accept': 'audio/mpeg',
+        }
+
+        payload = {
+            'text': text,
+            'model_id': self.MODEL_ID,
+            'voice_settings': {
+                'stability': 0.55,
+                'similarity_boost': 0.75,
+                'style': 0.10,
+                'use_speaker_boost': True,
+            },
+            'output_format': 'mp3_44100_128',
+        }
+
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            response = await client.post(url, json=payload, headers=headers)
+            response.raise_for_status()
+            return response.content
+
+    async def generate_full_audio(self, script: str) -> bytes:
+        """
+        Full pipeline:
+        1. Strip non-spoken text
+        2. Split into chunks
+        3. Generate each chunk via ElevenLabs
+        4. Concatenate all MP3 segments into a single blob
+        """
+        clean_script = self.strip_non_spoken_text(script)
+        chunks = self.split_text_into_chunks(clean_script)
+
+        audio_segments: List[bytes] = []
+        for i, chunk in enumerate(chunks, 1):
+            logger.info('Generating audio chunk %d/%d (%d chars)', i, len(chunks), len(chunk))
+            audio_data = await self.generate_audio_chunk(chunk)
+            audio_segments.append(audio_data)
+
+        # MP3 frames can be naively concatenated — players handle it correctly
+        combined = b''.join(audio_segments)
+        logger.info('Audio generation complete: %d bytes total', len(combined))
+        return combined
