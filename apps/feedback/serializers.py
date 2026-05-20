@@ -25,13 +25,20 @@ class MoodEntrySerializer(serializers.ModelSerializer):
 
 
 class SessionFeedbackSerializer(serializers.ModelSerializer):
+    session_id = serializers.IntegerField(write_only=True)
+
     class Meta:
         model = SessionFeedback
         fields = [
-            'id', 'session', 'effectiveness_rating', 'techniques_resonated',
+            'id', 'session_id', 'effectiveness_rating', 'techniques_resonated',
             'techniques_to_adjust', 'general_notes', 'created_at',
         ]
         read_only_fields = ['id', 'created_at']
+
+    def create(self, validated_data):
+        session_id = validated_data.pop('session_id')
+        validated_data['session_id'] = session_id
+        return super().create(validated_data)
 
     def validate_effectiveness_rating(self, value):
         if not (1 <= value <= 5):
