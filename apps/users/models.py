@@ -35,6 +35,11 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_staff = models.BooleanField(default=False)
     date_joined = models.DateTimeField(default=timezone.now)
 
+    # ── Demographics ───────────────────────────────────────────────────────
+    age = models.PositiveIntegerField(null=True, blank=True)
+    occupation = models.CharField(max_length=100, blank=True)
+    pronouns = models.CharField(max_length=20, blank=True)
+
     # ── Credit System ──────────────────────────────────────────────────────
     free_minutes_used = models.PositiveIntegerField(
         default=0,

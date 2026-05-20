@@ -5,6 +5,8 @@ from .views import (
     ProgramEnrollView,
     MyEnrollmentsView,
     AdvanceDayView,
+    ProgramCreateView,
+    ProgramDayCreateView,
 )
 
 urlpatterns = [
@@ -13,4 +15,6 @@ urlpatterns = [
     path('enroll/', ProgramEnrollView.as_view(), name='program-enroll'),
     path('my-enrollments/', MyEnrollmentsView.as_view(), name='my-enrollments'),
     path('enrollments/<int:pk>/advance/', AdvanceDayView.as_view(), name='advance-day'),
+    path('create/', ProgramCreateView.as_view(), name='program-create'),
+    path('days/create/', ProgramDayCreateView.as_view(), name='program-day-create'),
 ]

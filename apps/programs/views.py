@@ -9,6 +9,7 @@ from .serializers import (
     UserProgramEnrollmentSerializer,
 )
 from apps.core.permissions import IsPremiumUser
+from rest_framework.permissions import IsAdminUser
 
 
 class ProgramListView(generics.ListAPIView):
@@ -87,3 +88,16 @@ class AdvanceDayView(generics.UpdateAPIView):
             UserProgramEnrollmentSerializer(enrollment).data,
             status=status.HTTP_200_OK,
         )
+
+
+class ProgramCreateView(generics.CreateAPIView):
+    """POST /api/programs/create/ — Create a new program (Staff only)"""
+    serializer_class = TherapyProgramSerializer
+    permission_classes = [IsAdminUser]
+
+
+class ProgramDayCreateView(generics.CreateAPIView):
+    """POST /api/programs/days/create/ — Add a day to a program (Staff only)"""
+    from .serializers import ProgramDayCreateSerializer
+    serializer_class = ProgramDayCreateSerializer
+    permission_classes = [IsAdminUser]

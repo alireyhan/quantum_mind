@@ -67,3 +67,9 @@ class UserProgramEnrollmentSerializer(serializers.ModelSerializer):
         if day:
             return ProgramDaySerializer(day).data
         return None
+
+
+class ProgramDayCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProgramDay
+        fields = ['id', 'program', 'day_number', 'title', 'description', 'focus_technique']

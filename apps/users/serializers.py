@@ -11,7 +11,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['email', 'first_name', 'last_name', 'password', 'password_confirm']
+        fields = ['email', 'first_name', 'last_name', 'password', 'password_confirm', 'age', 'occupation', 'pronouns']
 
     def validate(self, data):
         if data['password'] != data['password_confirm']:
@@ -32,6 +32,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
         model = User
         fields = [
             'id', 'email', 'first_name', 'last_name', 'full_name',
+            'age', 'occupation', 'pronouns',
             'date_joined', 'is_premium', 'premium_expires_at',
             'free_minutes_used', 'purchased_credits',
             'available_credits', 'free_minutes_remaining',
@@ -52,4 +53,4 @@ class UserProfileSerializer(serializers.ModelSerializer):
 class UserUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['first_name', 'last_name']
+        fields = ['first_name', 'last_name', 'age', 'occupation', 'pronouns']
