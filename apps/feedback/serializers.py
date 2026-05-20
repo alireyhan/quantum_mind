@@ -8,7 +8,7 @@ class MoodEntrySerializer(serializers.ModelSerializer):
     class Meta:
         model = MoodEntry
         fields = [
-            'id', 'session_id', 'mood_before', 'mood_after',
+            'id', 'session', 'mood_before', 'mood_after',
             'improvement', 'notes', 'created_at',
         ]
         read_only_fields = ['id', 'improvement', 'created_at']
@@ -28,7 +28,7 @@ class SessionFeedbackSerializer(serializers.ModelSerializer):
     class Meta:
         model = SessionFeedback
         fields = [
-            'id', 'session_id', 'effectiveness_rating', 'techniques_resonated',
+            'id', 'session', 'effectiveness_rating', 'techniques_resonated',
             'techniques_to_adjust', 'general_notes', 'created_at',
         ]
         read_only_fields = ['id', 'created_at']
