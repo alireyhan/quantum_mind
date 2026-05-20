@@ -36,9 +36,11 @@ class SessionFeedbackSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'created_at']
 
     def create(self, validated_data):
-        session_id = validated_data.pop('session_id')
-        validated_data['session_id'] = session_id
-        return super().create(validated_data)
+        session_id = validated_data.pop('session_id', None)
+        if not session_id:
+            raise serializers.ValidationError({"session_id": "This field is required."})
+        
+        return SessionFeedback.objects.create(session_id=session_id, **validated_data)
 
     def validate_effectiveness_rating(self, value):
         if not (1 <= value <= 5):
