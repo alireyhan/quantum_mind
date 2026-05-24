@@ -30,9 +30,26 @@ class SessionCreateView(generics.CreateAPIView):
         serializer.is_valid(raise_exception=True)
 
         user = request.user
-        intake_id = serializer.validated_data['intake_id']
-        duration = serializer.validated_data['duration_minutes']
+        intake_id = serializer.validated_data.get('intake_id')
+        duration = serializer.validated_data.get('duration_minutes')
         program_day_id = serializer.validated_data.get('program_day_id')
+
+        # If the client didn't provide an intake, use the user's most recent one
+        from apps.intake.models import IntakeResponse
+        intake = None
+        if intake_id:
+            try:
+                intake = IntakeResponse.objects.get(id=intake_id, user=user)
+            except IntakeResponse.DoesNotExist:
+                return Response({'error': True, 'detail': 'Intake not found.'}, status=status.HTTP_404_NOT_FOUND)
+        else:
+            intake = IntakeResponse.objects.filter(user=user).order_by('-created_at').first()
+            if not intake:
+                return Response({'error': True, 'detail': 'No intake found for user; provide intake_id.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # If duration not provided, fall back to intake preference or minimum
+        if duration is None:
+            duration = getattr(intake, 'session_duration_minutes', None) or settings.MIN_SESSION_DURATION
 
         # Validate the intake belongs to this user
         from apps.intake.models import IntakeResponse

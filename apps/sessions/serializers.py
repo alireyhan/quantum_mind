@@ -40,7 +40,12 @@ class TherapySessionListSerializer(serializers.ModelSerializer):
 
 
 class SessionCreateSerializer(serializers.Serializer):
-    """Input serializer for session creation endpoint."""
-    intake_id = serializers.IntegerField()
-    duration_minutes = serializers.IntegerField(min_value=10, max_value=45)
+    """Input serializer for session creation endpoint.
+
+    All fields are optional to support lightweight "trigger" requests from the
+    client. Server will fall back to the user's latest intake and default
+    duration when not provided.
+    """
+    intake_id = serializers.IntegerField(required=False, allow_null=True)
+    duration_minutes = serializers.IntegerField(required=False, allow_null=True, min_value=10, max_value=45)
     program_day_id = serializers.IntegerField(required=False, allow_null=True)

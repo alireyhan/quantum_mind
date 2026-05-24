@@ -73,3 +73,30 @@ class User(AbstractBaseUser, PermissionsMixin):
     @property
     def full_name(self):
         return f'{self.first_name} {self.last_name}'.strip() or self.email
+
+
+class EmailOTP(models.Model):
+    PURPOSE_CHOICES = [
+        ('registration', 'Registration'),
+        ('password_reset', 'Password Reset'),
+    ]
+
+    email = models.EmailField(db_index=True)
+    otp = models.CharField(max_length=6)
+    purpose = models.CharField(max_length=20, choices=PURPOSE_CHOICES)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+
+    class Meta:
+        verbose_name = 'Email OTP'
+        verbose_name_plural = 'Email OTPs'
+        indexes = [
+            models.Index(fields=['email', 'otp', 'purpose']),
+        ]
+
+    def __str__(self):
+        return f"{self.email} - {self.purpose} - {self.otp}"
+
+    @property
+    def is_expired(self):
+        return timezone.now() > self.expires_at

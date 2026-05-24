@@ -26,3 +26,8 @@ class CreditBalanceSerializer(serializers.Serializer):
     free_minutes_remaining = serializers.IntegerField()
     purchased_credits = serializers.IntegerField()
     total_available = serializers.IntegerField()
+
+
+class StripePaymentVerifySerializer(serializers.Serializer):
+    stripe_session_id = serializers.CharField()
+    package_id = serializers.IntegerField()

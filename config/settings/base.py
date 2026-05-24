@@ -139,6 +139,7 @@ CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 minutes max per task
 OPENAI_API_KEY = env('OPENAI_API_KEY', default='')
 ELEVENLABS_API_KEY = env('ELEVENLABS_API_KEY', default='')
 ELEVENLABS_VOICE_ID = env('ELEVENLABS_VOICE_ID', default='21m00Tcm4TlvDq8ikWAM')
+STRIPE_SECRET_KEY = env('STRIPE_SECRET_KEY', default='')
 
 # Storage (DigitalOcean Spaces / AWS S3)
 AWS_ACCESS_KEY_ID = env('AWS_ACCESS_KEY_ID', default='')
@@ -164,3 +165,22 @@ if SENTRY_DSN:
 
 # Prompt template path
 PROMPT_TEMPLATE_PATH = BASE_DIR / 'templates' / 'hypnotherapy_prompt.txt'
+
+# Email settings (console backend by default; enable SMTP via env vars)
+# To use a real SMTP account (e.g. a Gmail App Password), set the following
+# env vars: EMAIL_HOST_USER, EMAIL_HOST_PASSWORD, EMAIL_HOST (optional),
+# EMAIL_PORT (optional), EMAIL_USE_TLS (optional).
+if env('EMAIL_HOST_USER', default=''):
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = env('EMAIL_HOST', default='smtp.gmail.com')
+    EMAIL_PORT = env.int('EMAIL_PORT', default=587)
+    EMAIL_USE_TLS = env.bool('EMAIL_USE_TLS', default=True)
+    EMAIL_HOST_USER = env('EMAIL_HOST_USER')
+    EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD')
+    DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='info@quantummindapp.com')
+else:
+    EMAIL_BACKEND = env('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')
+    DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='noreply@quantummindapp.com')
+
+# Frontend URL for deep links (like password reset)
+FRONTEND_URL = env('FRONTEND_URL', default='https://quantummindapp.com')
