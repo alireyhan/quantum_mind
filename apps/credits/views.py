@@ -49,8 +49,8 @@ class CreditPackageListView(generics.ListAPIView):
 
 
 class VerifyStripePaymentView(APIView):
-    """POST /api/credits/verify-payment/ — Verify a Stripe Checkout Session and
-    add purchased credits to the user's account.
+    """POST /api/credits/verify-payment/ — Verify a Stripe Checkout Session or
+    PaymentIntent and add purchased credits to the user's account.
     """
     permission_classes = [IsAuthenticated]
 
@@ -70,22 +70,35 @@ class VerifyStripePaymentView(APIView):
             return Response({'error': True, 'detail': 'Stripe not configured on server.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         stripe.api_key = settings.STRIPE_SECRET_KEY
-        try:
-            session = stripe.checkout.Session.retrieve(stripe_session_id)
-        except Exception as e:
-            return Response({'error': True, 'detail': f'Stripe lookup failed: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Accept if the checkout session indicates payment was completed.
-        payment_status = getattr(session, 'payment_status', None)
-        if payment_status != 'paid' and getattr(session, 'status', None) != 'complete':
-            # Try verifying the PaymentIntent as a fallback
-            payment_intent_id = getattr(session, 'payment_intent', None)
-            if payment_intent_id:
-                intent = stripe.PaymentIntent.retrieve(payment_intent_id)
-                if intent.status != 'succeeded':
-                    return Response({'error': True, 'detail': 'Payment not completed.'}, status=status.HTTP_400_BAD_REQUEST)
-            else:
-                return Response({'error': True, 'detail': 'Payment not completed.'}, status=status.HTTP_400_BAD_REQUEST)
+        payment_completed = False
+        if stripe_session_id.startswith('cs_'):
+            try:
+                session = stripe.checkout.Session.retrieve(stripe_session_id)
+                payment_status = getattr(session, 'payment_status', None)
+                if payment_status == 'paid' or getattr(session, 'status', None) == 'complete':
+                    payment_completed = True
+                else:
+                    # Try verifying the PaymentIntent as a fallback
+                    payment_intent_id = getattr(session, 'payment_intent', None)
+                    if payment_intent_id:
+                        intent = stripe.PaymentIntent.retrieve(payment_intent_id)
+                        if intent.status == 'succeeded':
+                            payment_completed = True
+            except Exception as e:
+                return Response({'error': True, 'detail': f'Stripe lookup failed: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
+        elif stripe_session_id.startswith('pi_'):
+            try:
+                intent = stripe.PaymentIntent.retrieve(stripe_session_id)
+                if intent.status == 'succeeded':
+                    payment_completed = True
+            except Exception as e:
+                return Response({'error': True, 'detail': f'Stripe lookup failed: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response({'error': True, 'detail': 'Invalid Stripe ID format. Must start with cs_ or pi_.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not payment_completed:
+            return Response({'error': True, 'detail': 'Payment not completed.'}, status=status.HTTP_400_BAD_REQUEST)
 
         # Add purchased credits
         credit_service = CreditService()
@@ -93,7 +106,7 @@ class VerifyStripePaymentView(APIView):
             request.user,
             package.minutes,
             transaction_type='purchase',
-            description=f'Purchase via Stripe session {stripe_session_id} (package {package.id})',
+            description=f'Purchase via Stripe ID {stripe_session_id} (package {package.id})',
         )
 
         return Response({'ok': True, 'minutes_added': package.minutes}, status=status.HTTP_200_OK)

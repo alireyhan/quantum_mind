@@ -10,5 +10,6 @@ class IntakeResponseAdmin(admin.ModelAdmin):
     readonly_fields = ['problem_category', 'created_at', 'updated_at']
 
     def main_issue_short(self, obj):
-        return obj.main_issue[:60] + '...' if len(obj.main_issue) > 60 else obj.main_issue
+        issue = obj.main_issue or ''
+        return issue[:60] + '...' if len(issue) > 60 else issue
     main_issue_short.short_description = 'Main Issue'

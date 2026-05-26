@@ -65,9 +65,11 @@ class OpenAIService:
         from the user's intake text. Result is injected into the prompt as
         {{problemCategory}} and stored on IntakeResponse.problem_category.
         """
-        issue = intake_data.get('main_issue', '').lower()
-        triggers = ' '.join(intake_data.get('triggers', [])).lower()
-        symptoms = ' '.join(intake_data.get('symptoms', [])).lower()
+        issue = (intake_data.get('main_issue') or '').lower()
+        triggers_list = intake_data.get('triggers') or []
+        triggers = ' '.join(triggers_list if isinstance(triggers_list, list) else []).lower()
+        symptoms_list = intake_data.get('symptoms') or []
+        symptoms = ' '.join(symptoms_list if isinstance(symptoms_list, list) else []).lower()
         text = f'{issue} {triggers} {symptoms}'
 
         category_keywords: Dict[str, list] = {

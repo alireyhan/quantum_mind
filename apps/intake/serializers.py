@@ -10,6 +10,8 @@ class IntakeResponseSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'user', 'problem_category', 'created_at', 'updated_at']
 
     def validate_session_duration_minutes(self, value):
+        if value is None:
+            return value
         if not (settings.MIN_SESSION_DURATION <= value <= settings.MAX_SESSION_DURATION):
             raise serializers.ValidationError(
                 f'Session duration must be between {settings.MIN_SESSION_DURATION} '
@@ -19,6 +21,8 @@ class IntakeResponseSerializer(serializers.ModelSerializer):
 
     def validate_mood_before(self, value):
         """Ensure mood scores are in range."""
+        if value is None:
+            return value
         if not (1 <= value <= 10):
             raise serializers.ValidationError('Mood score must be between 1 and 10.')
         return value

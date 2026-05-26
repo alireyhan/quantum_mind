@@ -28,46 +28,63 @@ class IntakeResponse(TimeStampedModel):
 
     # ── STEP 1: What Brings You Here ─────────────────────────────────────
     main_issue = models.TextField(
+        blank=True,
+        default='',
         help_text='The primary problem the user wants to address.'
     )
     issue_duration = models.CharField(
         max_length=100,
+        blank=True,
+        default='',
         help_text='How long this issue has persisted, e.g. "6 months", "10 years".'
     )
 
     # ── STEP 2: Triggers & Emotions ───────────────────────────────────────
     triggers = models.JSONField(
         default=list,
+        blank=True,
         help_text='Situations or stimuli that trigger the problem. Stored as list of strings.',
     )
     symptoms = models.JSONField(
         default=list,
+        blank=True,
         help_text='Emotions and physical sensations experienced (labeled "emotions" in UI).',
     )
 
     # ── STEP 3: The Shift ─────────────────────────────────────────────────
     behavior_to_change = models.TextField(
+        blank=True,
+        default='',
         help_text='The specific behaviour the user wants to modify.'
     )
     desired_emotional_shift = models.CharField(
         max_length=200,
+        blank=True,
+        default='',
         help_text='The emotional state the user wants to move toward.',
     )
 
     # ── STEP 4: Your Vision ───────────────────────────────────────────────
     success_vision = models.TextField(
+        blank=True,
+        default='',
         help_text='The user\'s own description of life after the transformation.'
     )
     positive_anchoring_memory = models.TextField(
+        blank=True,
+        default='',
         help_text='A real positive memory used for NLP resource anchoring.'
     )
 
     # ── STEP 5: Your World ────────────────────────────────────────────────
     interests = models.JSONField(
         default=list,
+        blank=True,
         help_text='Hobbies/interests used to build personalised metaphors. Stored as list of strings.',
     )
     work_life_environment = models.TextField(
+        blank=True,
+        default='',
         help_text='Description of the user\'s daily work and life context.'
     )
 
@@ -130,6 +147,8 @@ class IntakeResponse(TimeStampedModel):
 
     # ── STEP 9: Session Preferences ──────────────────────────────────────
     session_duration_minutes = models.PositiveIntegerField(
+        null=True,
+        blank=True,
         help_text='Requested session length in minutes (10-45).',
     )
     focus_category = models.CharField(
@@ -157,4 +176,5 @@ class IntakeResponse(TimeStampedModel):
         verbose_name_plural = 'Intake Responses'
 
     def __str__(self):
-        return f'{self.user.email} — {self.main_issue[:60]} ({self.created_at.date()})'
+        issue_text = self.main_issue or ''
+        return f'{self.user.email} — {issue_text[:60]} ({self.created_at.date()})'
