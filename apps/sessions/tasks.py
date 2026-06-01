@@ -127,14 +127,33 @@ def generate_session_task(self, session_id: int):
         _fail_session(session, exc)
         raise self.retry(exc=exc)
 
-    # ── Phase 3: Generate Audio (ElevenLabs) ──────────────────────────────
+    # ── Phase 3: Generate Audio & Music (ElevenLabs) ──────────────────────
     try:
-        audio_data = asyncio.run(audio_service.generate_full_audio(script))
-        logger.info('Audio generated for session %s: %d bytes', session_id, len(audio_data))
-        _save_debug_file(session_id, 'audio.mp3', audio_data, mode='wb')
+        # 1. Generate Voice
+        voice_data = asyncio.run(audio_service.generate_full_audio(script))
+        logger.info('Voice generated for session %s: %d bytes', session_id, len(voice_data))
+        _save_debug_file(session_id, 'voice_only.mp3', voice_data, mode='wb')
+
+        # 2. Generate Background Music
+        music_prompt = "relaxing ambient background music, calming pads, binaural beats, theta waves, peaceful meditation, hypnotherapy, continuous flowing soundscape"
+        try:
+            music_data = asyncio.run(audio_service.generate_background_music(music_prompt))
+            logger.info('Music generated for session %s: %d bytes', session_id, len(music_data))
+            _save_debug_file(session_id, 'music_only.mp3', music_data, mode='wb')
+        except Exception as e:
+            logger.warning('Background music generation failed, continuing with voice only: %s', e)
+            music_data = None
+
+        # 3. Mix Voice and Music
+        if music_data:
+            audio_data = audio_service.mix_audio_with_background(voice_data, music_data, volume_reduction=18)
+            logger.info('Audio mixed for session %s: %d bytes', session_id, len(audio_data))
+            _save_debug_file(session_id, 'mixed_audio.mp3', audio_data, mode='wb')
+        else:
+            audio_data = voice_data
 
     except Exception as exc:
-        logger.exception('Audio generation failed for session %s', session_id)
+        logger.exception('Audio generation/mixing failed for session %s', session_id)
         _fail_session(session, exc)
         raise self.retry(exc=exc)
 

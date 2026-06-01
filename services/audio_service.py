@@ -3,6 +3,8 @@ import logging
 from typing import List
 from django.conf import settings
 import httpx
+import io
+from pydub import AudioSegment
 
 logger = logging.getLogger(__name__)
 
@@ -143,3 +145,51 @@ class AudioService:
         combined = b''.join(audio_segments)
         logger.info('Audio generation complete: %d bytes total', len(combined))
         return combined
+
+    async def generate_background_music(self, prompt: str) -> bytes:
+        """
+        Generate background music/ambient sound via ElevenLabs Sound Generation API.
+        We'll loop this track to fit the full session duration later.
+        """
+        url = f'{self.base_url}/sound-generation'
+        headers = {
+            'xi-api-key': self.api_key,
+            'Content-Type': 'application/json',
+        }
+        payload = {
+            'text': prompt,
+            'duration_seconds': 22, # max allowed for sound-generation
+            'prompt_influence': 0.3,
+        }
+        
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            response = await client.post(url, json=payload, headers=headers)
+            response.raise_for_status()
+            return response.content
+
+    def mix_audio_with_background(self, voice_bytes: bytes, music_bytes: bytes, volume_reduction: int = 15) -> bytes:
+        """
+        Overlays the voice track over the background music track.
+        Loops the music track if it's shorter than the voice track.
+        Reduces the volume of the music track by `volume_reduction` dB.
+        """
+        voice = AudioSegment.from_file(io.BytesIO(voice_bytes))
+        music = AudioSegment.from_file(io.BytesIO(music_bytes))
+
+        # Reduce volume of music
+        music = music - volume_reduction
+
+        # Loop the music to match the voice length
+        if len(music) < len(voice):
+            loops = (len(voice) // len(music)) + 1
+            music = music * loops
+
+        # Trim music to exact voice length
+        music = music[:len(voice)]
+
+        # Mix them
+        combined = music.overlay(voice)
+
+        output = io.BytesIO()
+        combined.export(output, format="mp3", bitrate="128k")
+        return output.getvalue()
