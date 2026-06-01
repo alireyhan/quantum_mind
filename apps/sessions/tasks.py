@@ -96,6 +96,7 @@ def generate_session_task(self, session_id: int):
 
         prompt = engine.fill_template(variables, profile_context, program_context)
         logger.info('Prompt built for session %s (%d chars)', session_id, len(prompt))
+        _save_debug_file(session_id, 'prompt.txt', prompt)
 
     except Exception as exc:
         logger.exception('Prompt build failed for session %s', session_id)
@@ -110,6 +111,9 @@ def generate_session_task(self, session_id: int):
         audio_service = AudioService()
         clean_script = audio_service.strip_non_spoken_text(script)
         chunks = audio_service.split_text_into_chunks(clean_script)
+
+        _save_debug_file(session_id, 'raw_script.txt', script)
+        _save_debug_file(session_id, 'cleaned_script.txt', clean_script)
 
         session.script_text = script
         session.script_chunks = chunks
@@ -127,6 +131,7 @@ def generate_session_task(self, session_id: int):
     try:
         audio_data = asyncio.run(audio_service.generate_full_audio(script))
         logger.info('Audio generated for session %s: %d bytes', session_id, len(audio_data))
+        _save_debug_file(session_id, 'audio.mp3', audio_data, mode='wb')
 
     except Exception as exc:
         logger.exception('Audio generation failed for session %s', session_id)
@@ -189,3 +194,22 @@ def _fail_session(session: TherapySession, exc: Exception):
         logger.info('Credits refunded for failed session %s', session.id)
     except Exception as refund_exc:
         logger.error('Credit refund also failed for session %s: %s', session.id, refund_exc)
+
+
+def _save_debug_file(session_id: int, suffix: str, data, mode: str = 'w'):
+    """Helper to save session prompt, scripts, and audio to session_debug/ locally for comparison."""
+    import os
+    from django.conf import settings
+    try:
+        debug_dir = settings.BASE_DIR / 'session_debug'
+        os.makedirs(debug_dir, exist_ok=True)
+        file_path = debug_dir / f'session_{session_id}_{suffix}'
+        if mode == 'wb':
+            with open(file_path, 'wb') as f:
+                f.write(data)
+        else:
+            with open(file_path, 'w', encoding='utf-8') as f:
+                f.write(str(data))
+        logger.info('Saved debug file: %s', file_path)
+    except Exception as e:
+        logger.error('Failed to save debug file for session %s (suffix: %s): %s', session_id, suffix, e)
