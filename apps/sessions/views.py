@@ -51,15 +51,6 @@ class SessionCreateView(generics.CreateAPIView):
         if duration is None:
             duration = getattr(intake, 'session_duration_minutes', None) or settings.MIN_SESSION_DURATION
 
-        # Validate the intake belongs to this user
-        from apps.intake.models import IntakeResponse
-        try:
-            intake = IntakeResponse.objects.get(id=intake_id, user=user)
-        except IntakeResponse.DoesNotExist:
-            return Response(
-                {'error': True, 'detail': 'Intake not found.'},
-                status=status.HTTP_404_NOT_FOUND,
-            )
 
         # Check credit balance
         credit_service = CreditService()

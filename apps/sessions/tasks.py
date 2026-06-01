@@ -61,7 +61,7 @@ def generate_session_task(self, session_id: int):
             'positiveAnchoringMemory': intake.positive_anchoring_memory,
             'interests': intake.interests,
             'workLifeEnvironment': intake.work_life_environment,
-            'sessionDuration': intake.session_duration_minutes,
+            'sessionDuration': session.duration_minutes,
             'problemCategory': intake.problem_category,
             # Advanced fields (conditional blocks)
             'repeatingThoughts': intake.repeating_thoughts,
@@ -134,6 +134,9 @@ def generate_session_task(self, session_id: int):
         raise self.retry(exc=exc)
 
     # ── Phase 4: Upload to Storage ────────────────────────────────────────
+    # Calculate duration in seconds based on 128 kbps constant bitrate (CBR) MP3 format (16,000 bytes/sec)
+    duration_seconds = len(audio_data) // 16000
+
     try:
         storage = StorageService()
         file_key = f'sessions/{session.user.id}/{session.id}/{uuid.uuid4()}.mp3'
@@ -144,6 +147,7 @@ def generate_session_task(self, session_id: int):
             file_key=file_key,
             cdn_url=cdn_url,
             file_size_bytes=len(audio_data),
+            duration_seconds=duration_seconds,
             format='mp3',
         )
         logger.info('Audio uploaded for session %s: %s', session_id, cdn_url)
@@ -155,9 +159,10 @@ def generate_session_task(self, session_id: int):
 
     # ── Phase 5: Finalise Session ─────────────────────────────────────────
     session.audio_url = cdn_url
+    session.audio_duration_seconds = duration_seconds
     session.status = TherapySession.STATUS_COMPLETED
     session.completed_at = timezone.now()
-    session.save(update_fields=['audio_url', 'status', 'completed_at'])
+    session.save(update_fields=['audio_url', 'audio_duration_seconds', 'status', 'completed_at'])
 
     logger.info(
         'Session %s completed successfully in %.1f seconds',
