@@ -51,7 +51,7 @@ def generate_session_task(self, session_id: int):
         engine = PromptTemplateEngine()
 
         session_duration = session.duration_minutes
-        target_word_count = max(1200, int(session_duration * 115))
+        target_word_count = max(1800, int(session_duration * 150))
 
         variables = {
             'mainIssue': intake.main_issue,
