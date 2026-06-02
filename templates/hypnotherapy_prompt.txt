@@ -270,18 +270,31 @@ Do NOT count up. Instead, guide them deeper:
 
 ## WRITING GUIDELINES
 
-1. **Length:** Write enough spoken content to fill exactly {{sessionDuration}} minutes. At an average hypnotic speech rate of ~120 words/minute, this means approximately {{sessionDuration}} × 120 words of actual script.
+1. **CRITICAL Length & Word-Count Budget:** You MUST generate a complete, full-length, word-for-word script that contains AT LEAST **{{targetWordCount}}** words. This is an absolute hard floor. Do not write a summary, do not use placeholder descriptions (e.g. "[continue counting]"), and do not abbreviate. You must write out every single spoken word in full detail.
+To achieve this length, allocate the target word count across the phases as follows:
+   - Phase 1 (Orienting Introduction): ~5% (approx. **{{targetWordCount_5}}** words) - Set safe expectations, Ericksonian permissiveness.
+   - Phase 2 & 3 (Induction & Deepening): ~20% (approx. **{{targetWordCount_20}}** words) - Extensive breath pacing, progressive relaxation of every body part, staircase/deepener countdowns.
+   - Phase 4 & 5 (Resource Activation & Metaphors): ~20% (approx. **{{targetWordCount_20}}** words) - Extremely vivid, multi-sensory resource memories and multi-layered metaphorical stories.
+   - Phase 6 (Core Change Work): ~35% (approx. **{{targetWordCount_35}}** words) - Thorough therapeutic/NLP change work, parts integration dialog, somatic release, or timeline healing.
+   - Phase 7 & 8 & 9 (Identity, Rehearsal, Future Pacing): ~15% (approx. **{{targetWordCount_15}}** words) - Identity-level integration, detailed situational roleplay, and future projections.
+   - Phase 10 & 11 (Integration & Emergence): ~5% (approx. **{{targetWordCount_5}}** words) - Suspending metaphors, final suggestions, and energizing or sleeping emergence.
 
-2. **Voice:** Calm, warm, authoritative but never harsh. Gentle pauses implied by ellipses (...). The voice blends Erickson's permissive indirectness with Robbins' energising conviction.
+2. **Programmatic Pauses:** Hypnotherapy requires deep, slow-paced pacing. You MUST weave explicit pause markers in the exact format `[pause: Ns]` where N is the duration in seconds (e.g., `[pause: 5s]`, `[pause: 10s]`, `[pause: 15s]`). Use:
+   - `[pause: 3s]` to `[pause: 5s]` between paragraphs or normal breathing cycles.
+   - `[pause: 8s]` to `[pause: 12s]` after deep relaxation commands or countdown steps.
+   - `[pause: 15s]` to `[pause: 20s]` inside the core change work, somatic release, and future pacing visualization to let the unconscious fully absorb suggestions.
+   Do NOT use any other brackets or stage directions, ONLY the `[pause: Ns]` format.
 
-3. **Language:** Use "you" and "your" throughout. Second person, present tense. No clinical jargon. No diagnostic labels. Speak TO the subconscious, not ABOUT it.
+3. **Voice:** Calm, warm, authoritative but never harsh. Gentle pauses implied by ellipses (...) in addition to the explicit pause markers. The voice blends Erickson's permissive indirectness with Robbins' energising conviction.
 
-4. **Repetition:** Hypnotic suggestion works through strategic repetition. Key phrases and suggestions should appear 2-3 times in varied forms.
+4. **Language:** Use "you" and "your" throughout. Second person, present tense. No clinical jargon. No diagnostic labels. Speak TO the subconscious, not ABOUT it.
 
-5. **Embedded Commands:** Weave direct suggestions inside longer sentences. "You might notice how easy it is to RELAX COMPLETELY right now."
+5. **Repetition:** Hypnotic suggestion works through strategic repetition. Key phrases and suggestions should appear 2-3 times in varied forms.
 
-6. **Avoid:** Any of these words/phrases: {{languageToAvoid}}
+6. **Embedded Commands:** Weave direct suggestions inside longer sentences. "You might notice how easy it is to RELAX COMPLETELY right now."
 
-7. **Output:** Written script only. No headers, no stage directions, no [pause] markers, no section labels. Pure spoken text from beginning to end.
+7. **Avoid:** Any of these words/phrases: {{languageToAvoid}}
+
+8. **Output:** Written script only. No headers, no commentary, no stage directions (except the allowed `[pause: Ns]` markers). Pure spoken text from beginning to end, with programmatic pauses embedded.
 
 Begin the session script now:

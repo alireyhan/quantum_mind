@@ -27,11 +27,13 @@ class AudioService:
 
     def strip_non_spoken_text(self, script: str) -> str:
         """
-        Remove markdown headers, stage directions, and parentheticals
-        so only the spoken words reach TTS.
+        Remove markdown headers, stage directions, parentheticals, and pause markers
+        so only the spoken words reach TTS or visual transcript.
         """
         # Remove markdown headers (# ## ###)
         script = re.sub(r'^#{1,6}\s+.*$', '', script, flags=re.MULTILINE)
+        # Remove bracketed pause markers [pause: 5s] or [pause]
+        script = re.sub(r'\[pause(?::\s*\d+s)?\]', '', script, flags=re.IGNORECASE)
         # Remove bracketed stage directions [pause] [deep breath] etc.
         script = re.sub(r'\[.*?\]', '', script, flags=re.DOTALL)
         # Remove parenthetical directions (pause here) (slow voice)
@@ -43,6 +45,39 @@ class AudioService:
         # Collapse excessive blank lines
         script = re.sub(r'\n{3,}', '\n\n', script)
         return script.strip()
+
+    def parse_script_with_pauses(self, script: str) -> List[dict]:
+        """
+        Parse raw script into sequential blocks of spoken text vs. programmatic silence.
+        """
+        # Split on [pause] or [pause: Ns] markers. Keep the capturing parentheses so the markers are in the split parts
+        pause_pattern = r'(\[pause(?::\s*\d+s)?\])'
+        parts = re.split(pause_pattern, script, flags=re.IGNORECASE)
+        
+        parsed = []
+        for part in parts:
+            part_str = part.strip()
+            if not part_str:
+                continue
+                
+            # Check if this part is a pause marker
+            pause_match = re.match(r'^\[pause(?::\s*(\d+)s)?\]$', part_str, flags=re.IGNORECASE)
+            if pause_match:
+                seconds_str = pause_match.group(1)
+                seconds = int(seconds_str) if seconds_str else 4  # default to 4-second pause
+                parsed.append({
+                    'type': 'pause',
+                    'duration_ms': seconds * 1000
+                })
+            else:
+                # It's a text block. Clean other directions first.
+                cleaned = self.strip_non_spoken_text(part_str)
+                if cleaned:
+                    parsed.append({
+                        'type': 'text',
+                        'content': cleaned
+                    })
+        return parsed
 
     def split_text_into_chunks(self, text: str) -> List[str]:
         """
@@ -127,24 +162,39 @@ class AudioService:
     async def generate_full_audio(self, script: str) -> bytes:
         """
         Full pipeline:
-        1. Strip non-spoken text
-        2. Split into chunks
-        3. Generate each chunk via ElevenLabs
-        4. Concatenate all MP3 segments into a single blob
+        1. Parse script into sequential text blocks and programmatic pauses.
+        2. Generate speech for text blocks via ElevenLabs.
+        3. Insert precise silent AudioSegments for pauses.
+        4. Concatenate all AudioSegments using pydub.
         """
-        clean_script = self.strip_non_spoken_text(script)
-        chunks = self.split_text_into_chunks(clean_script)
-
-        audio_segments: List[bytes] = []
-        for i, chunk in enumerate(chunks, 1):
-            logger.info('Generating audio chunk %d/%d (%d chars)', i, len(chunks), len(chunk))
-            audio_data = await self.generate_audio_chunk(chunk)
-            audio_segments.append(audio_data)
-
-        # MP3 frames can be naively concatenated — players handle it correctly
-        combined = b''.join(audio_segments)
-        logger.info('Audio generation complete: %d bytes total', len(combined))
-        return combined
+        parsed_items = self.parse_script_with_pauses(script)
+        combined_audio = AudioSegment.empty()
+        
+        for idx, item in enumerate(parsed_items, 1):
+            if item['type'] == 'pause':
+                duration_ms = item['duration_ms']
+                logger.info('Stitching silence chunk: %d ms', duration_ms)
+                silence = AudioSegment.silent(duration=duration_ms)
+                combined_audio += silence
+            elif item['type'] == 'text':
+                text_content = item['content']
+                # Split this text block into smaller chunks if it exceeds the ElevenLabs limit
+                chunks = self.split_text_into_chunks(text_content)
+                for chunk in chunks:
+                    logger.info('Generating audio chunk (%d chars): %s...', len(chunk), chunk[:30])
+                    chunk_bytes = await self.generate_audio_chunk(chunk)
+                    segment = AudioSegment.from_file(io.BytesIO(chunk_bytes), format='mp3')
+                    combined_audio += segment
+        
+        # Ensure we have at least some audio to avoid empty exports
+        if len(combined_audio) == 0:
+            logger.warning('Audio sequence was empty. Creating 1 second of silence.')
+            combined_audio = AudioSegment.silent(duration=1000)
+            
+        output = io.BytesIO()
+        combined_audio.export(output, format='mp3', bitrate='128k')
+        logger.info('Combined audio export complete: %d bytes total', len(output.getvalue()))
+        return output.getvalue()
 
     async def generate_background_music(self, prompt: str) -> bytes:
         """

@@ -50,6 +50,9 @@ def generate_session_task(self, session_id: int):
         intake = session.intake
         engine = PromptTemplateEngine()
 
+        session_duration = session.duration_minutes
+        target_word_count = max(1200, int(session_duration * 115))
+
         variables = {
             'mainIssue': intake.main_issue,
             'issueDuration': intake.issue_duration,
@@ -61,7 +64,12 @@ def generate_session_task(self, session_id: int):
             'positiveAnchoringMemory': intake.positive_anchoring_memory,
             'interests': intake.interests,
             'workLifeEnvironment': intake.work_life_environment,
-            'sessionDuration': session.duration_minutes,
+            'sessionDuration': session_duration,
+            'targetWordCount': target_word_count,
+            'targetWordCount_5': int(target_word_count * 0.05),
+            'targetWordCount_15': int(target_word_count * 0.15),
+            'targetWordCount_20': int(target_word_count * 0.20),
+            'targetWordCount_35': int(target_word_count * 0.35),
             'problemCategory': intake.problem_category,
             # Advanced fields (conditional blocks)
             'repeatingThoughts': intake.repeating_thoughts,
