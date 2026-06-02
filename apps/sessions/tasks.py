@@ -103,8 +103,7 @@ def generate_session_task(self, session_id: int):
             }
 
         prompt = engine.fill_template(variables, profile_context, program_context)
-        logger.info('Prompt built for session %s (%d chars)', session_id, len(prompt))
-        _save_debug_file(session_id, 'prompt.txt', prompt)
+        logger.info('Prompt successfully built for session %s (%d chars)', session_id, len(prompt))
 
     except Exception as exc:
         logger.exception('Prompt build failed for session %s', session_id)
@@ -114,21 +113,25 @@ def generate_session_task(self, session_id: int):
     # ── Phase 2: Generate Script (Claude) ─────────────────────────────────
     try:
         ai_service = OpenAIService()
+        logger.info('Calling OpenAI service to generate script for session %s...', session_id)
         script = asyncio.run(ai_service.generate_script(prompt))
+        
+        # Check if the script contains a safety refusal message
+        if "can't assist" in script or "I am sorry" in script:
+            logger.error('CRITICAL: OpenAI safety refusal detected for session %s! Refusal response: "%s"', session_id, script)
+        else:
+            logger.info('OpenAI successfully returned script for session %s (%d characters). First 200 chars: %s', session_id, len(script), script[:200])
 
         audio_service = AudioService()
         clean_script = audio_service.strip_non_spoken_text(script)
         chunks = audio_service.split_text_into_chunks(clean_script)
-
-        _save_debug_file(session_id, 'raw_script.txt', script)
-        _save_debug_file(session_id, 'cleaned_script.txt', clean_script)
 
         session.script_text = script
         session.script_chunks = chunks
         session.status = TherapySession.STATUS_GENERATING_AUDIO
         session.save(update_fields=['script_text', 'script_chunks', 'status'])
 
-        logger.info('Script generated for session %s: %d chunks', session_id, len(chunks))
+        logger.info('Script processed and saved for session %s: %d total spoken text chunks.', session_id, len(chunks))
 
     except Exception as exc:
         logger.exception('Script generation failed for session %s', session_id)
@@ -138,25 +141,25 @@ def generate_session_task(self, session_id: int):
     # ── Phase 3: Generate Audio & Music (ElevenLabs) ──────────────────────
     try:
         # 1. Generate Voice
+        logger.info('Starting voice generation via ElevenLabs for session %s...', session_id)
         voice_data = asyncio.run(audio_service.generate_full_audio(script))
-        logger.info('Voice generated for session %s: %d bytes', session_id, len(voice_data))
-        _save_debug_file(session_id, 'voice_only.mp3', voice_data, mode='wb')
+        logger.info('Voice generated successfully for session %s: %d bytes', session_id, len(voice_data))
 
         # 2. Generate Background Music
         music_prompt = "relaxing ambient background music, calming pads, binaural beats, theta waves, peaceful meditation, hypnotherapy, continuous flowing soundscape"
         try:
+            logger.info('Generating background music track for session %s...', session_id)
             music_data = asyncio.run(audio_service.generate_background_music(music_prompt))
-            logger.info('Music generated for session %s: %d bytes', session_id, len(music_data))
-            _save_debug_file(session_id, 'music_only.mp3', music_data, mode='wb')
+            logger.info('Background music generated successfully: %d bytes', len(music_data))
         except Exception as e:
             logger.warning('Background music generation failed, continuing with voice only: %s', e)
             music_data = None
 
         # 3. Mix Voice and Music
         if music_data:
+            logger.info('Mixing voice and background music for session %s...', session_id)
             audio_data = audio_service.mix_audio_with_background(voice_data, music_data, volume_reduction=18)
-            logger.info('Audio mixed for session %s: %d bytes', session_id, len(audio_data))
-            _save_debug_file(session_id, 'mixed_audio.mp3', audio_data, mode='wb')
+            logger.info('Audio mixed successfully for session %s: %d bytes', session_id, len(audio_data))
         else:
             audio_data = voice_data
 
@@ -223,20 +226,4 @@ def _fail_session(session: TherapySession, exc: Exception):
         logger.error('Credit refund also failed for session %s: %s', session.id, refund_exc)
 
 
-def _save_debug_file(session_id: int, suffix: str, data, mode: str = 'w'):
-    """Helper to save session prompt, scripts, and audio to session_debug/ locally for comparison."""
-    import os
-    from django.conf import settings
-    try:
-        debug_dir = settings.BASE_DIR / 'session_debug'
-        os.makedirs(debug_dir, exist_ok=True)
-        file_path = debug_dir / f'session_{session_id}_{suffix}'
-        if mode == 'wb':
-            with open(file_path, 'wb') as f:
-                f.write(data)
-        else:
-            with open(file_path, 'w', encoding='utf-8') as f:
-                f.write(str(data))
-        logger.info('Saved debug file: %s', file_path)
-    except Exception as e:
-        logger.error('Failed to save debug file for session %s (suffix: %s): %s', session_id, suffix, e)
+# _save_debug_file helper removed as requested to clean disk output
