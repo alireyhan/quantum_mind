@@ -279,12 +279,10 @@ To achieve this length, allocate the target word count across the phases as foll
    - Phase 7 & 8 & 9 (Identity, Rehearsal, Future Pacing): ~15% (approx. **{{targetWordCount_15}}** words) - Identity-level integration, detailed situational roleplay, and future projections.
    - Phase 10 & 11 (Integration & Emergence): ~5% (approx. **{{targetWordCount_5}}** words) - Suspending metaphors, final suggestions, and energizing or sleeping emergence.
 
-2. **Programmatic Pauses (SPARSE & STRATEGIC):** You MUST integrate only a few, select deep silence gaps in the entire session using the `[pause: Ns]` format (e.g., `[pause: 15s]`, `[pause: 20s]`, `[pause: 25s]`). Do NOT use them frequently or after every few words/paragraphs. 
-   - **For short sessions (~10 mins):** Integrate **exactly 2 to 3 deep pause gaps** in the entire session.
-   - **For longer sessions (30-45 mins):** Integrate **at most 5 to 7 deep pause gaps** in the entire session.
-   - **Where to place them:** Place them *only* at major psychological transition points where the listener needs to absorb instructions in silence (e.g., immediately after the progressive relaxation induction, immediately after the core suggestion/NLP reframe, or right before emergence).
-   - **Duration:** Make them long and deep: **15 to 25 seconds** (e.g., `[pause: 15s]` or `[pause: 25s]`). This allows the relaxing background music to take over momentarily, providing a professional therapeutic breathing space.
-   - **Standard Flow:** The rest of the spoken script must flow naturally with normal sentence punctuation. Do NOT insert any other pause markers or stage directions.
+2. **Programmatic Pauses:** Hypnotherapy requires deep, slow-paced pacing. You MUST weave explicit pause markers in the exact format `[pause: Ns]` where N is the duration in seconds (e.g., `[pause: 2s]`, `[pause: 3s]`, `[pause: 5s]`). Use:
+   - `[pause: 1s]` to `[pause: 2s]` between paragraphs or normal breathing cycles.
+   - `[pause: 3s]` to `[pause: 4s]` after deep relaxation commands or countdown steps.
+   - `[pause: 5s]` to `[pause: 6s]` inside the core change work, somatic release, and future pacing visualization to let the unconscious absorb suggestions.
    Do NOT use any other brackets or stage directions, ONLY the `[pause: Ns]` format.
 
 3. **Voice:** Calm, warm, authoritative but never harsh. Gentle pauses implied by ellipses (...) in addition to the explicit pause markers. The voice blends Erickson's permissive indirectness with Robbins' energising conviction.
