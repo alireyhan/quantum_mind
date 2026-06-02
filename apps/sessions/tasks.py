@@ -114,7 +114,19 @@ def generate_session_task(self, session_id: int):
     try:
         ai_service = OpenAIService()
         logger.info('Calling OpenAI service to generate script for session %s...', session_id)
-        script = asyncio.run(ai_service.generate_script(prompt))
+        max_tokens = OpenAIService.tokens_for_duration(session_duration)
+        if OpenAIService.needs_multi_pass(session_duration):
+            logger.info(
+                'Session %s: duration=%d min exceeds single-pass token limit → using multi-pass generation.',
+                session_id, session_duration,
+            )
+            script = asyncio.run(ai_service.generate_script_multipass(prompt, session_duration))
+        else:
+            logger.info(
+                'Session %s: duration=%d min → single-pass generation (max_tokens=%d).',
+                session_id, session_duration, max_tokens,
+            )
+            script = asyncio.run(ai_service.generate_script(prompt, max_tokens=max_tokens))
         
         # Check if the script contains a safety refusal message
         if "can't assist" in script or "I am sorry" in script:
