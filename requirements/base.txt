@@ -19,3 +19,4 @@ sentry-sdk>=1.39
 flower>=2.0.0
 stripe>=5.0
 pydub>=0.25.1
+deep-translator>=1.11.4

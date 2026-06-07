@@ -132,7 +132,7 @@ class AudioService:
 
     # ── ElevenLabs API ────────────────────────────────────────────────────
 
-    async def generate_audio_chunk(self, text: str) -> bytes:
+    async def generate_audio_chunk(self, text: str, language: str = 'en') -> bytes:
         """Generate MP3 audio for a single text chunk via ElevenLabs."""
         url = f'{self.base_url}/text-to-speech/{self.voice_id}'
 
@@ -142,9 +142,14 @@ class AudioService:
             'Accept': 'audio/mpeg',
         }
 
+        # If language is specified and not english, use multilingual model
+        model_id = self.MODEL_ID
+        if language and language.lower() != 'en':
+            model_id = 'eleven_multilingual_v2'
+
         payload = {
             'text': text,
-            'model_id': self.MODEL_ID,
+            'model_id': model_id,
             'voice_settings': {
                 'stability': 0.55,
                 'similarity_boost': 0.75,
@@ -159,7 +164,7 @@ class AudioService:
             response.raise_for_status()
             return response.content
 
-    async def generate_full_audio(self, script: str) -> bytes:
+    async def generate_full_audio(self, script: str, language: str = 'en') -> bytes:
         """
         Full pipeline:
         1. Parse script into sequential text blocks and programmatic pauses.
@@ -182,7 +187,7 @@ class AudioService:
                 chunks = self.split_text_into_chunks(text_content)
                 for chunk in chunks:
                     logger.info('Generating audio chunk (%d chars): %s...', len(chunk), chunk[:30])
-                    chunk_bytes = await self.generate_audio_chunk(chunk)
+                    chunk_bytes = await self.generate_audio_chunk(chunk, language=language)
                     segment = AudioSegment.from_file(io.BytesIO(chunk_bytes), format='mp3')
                     combined_audio += segment
         

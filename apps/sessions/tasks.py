@@ -134,6 +134,12 @@ def generate_session_task(self, session_id: int):
         else:
             logger.info('OpenAI successfully returned script for session %s (%d characters). First 200 chars: %s', session_id, len(script), script[:200])
 
+        # ── Optional: Translate Script ───────────────────────────────────────
+        if session.language and session.language.lower() != 'en':
+            from services.translation_service import TranslationService
+            logger.info('Session language is %s. Translating script...', session.language)
+            script = TranslationService.translate_script(script, session.language)
+
         audio_service = AudioService()
         clean_script = audio_service.strip_non_spoken_text(script)
         chunks = audio_service.split_text_into_chunks(clean_script)
@@ -154,7 +160,7 @@ def generate_session_task(self, session_id: int):
     try:
         # 1. Generate Voice
         logger.info('Starting voice generation via ElevenLabs for session %s...', session_id)
-        voice_data = asyncio.run(audio_service.generate_full_audio(script))
+        voice_data = asyncio.run(audio_service.generate_full_audio(script, language=session.language))
         logger.info('Voice generated successfully for session %s: %d bytes', session_id, len(voice_data))
 
         # 2. Generate Background Music

@@ -33,6 +33,7 @@ class SessionCreateView(generics.CreateAPIView):
         intake_id = serializer.validated_data.get('intake_id')
         duration = serializer.validated_data.get('duration_minutes')
         program_day_id = serializer.validated_data.get('program_day_id')
+        language = serializer.validated_data.get('language') or 'en'
 
         # If the client didn't provide an intake, use the user's most recent one
         from apps.intake.models import IntakeResponse
@@ -75,6 +76,7 @@ class SessionCreateView(generics.CreateAPIView):
             intake=intake,
             duration_minutes=duration,
             credits_used=duration,
+            language=language,
             problem_category=intake.problem_category,
             program_day_id=program_day_id,
             status=TherapySession.STATUS_PENDING,

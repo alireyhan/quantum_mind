@@ -48,6 +48,11 @@ class TherapySession(TimeStampedModel):
     )
     duration_minutes = models.PositiveIntegerField()
     credits_used = models.PositiveIntegerField()
+    language = models.CharField(
+        max_length=10,
+        default='en',
+        help_text='Target language for the session (e.g., en, es, fr)',
+    )
 
     # ── Generated Content ─────────────────────────────────────────────────
     script_text = models.TextField(
