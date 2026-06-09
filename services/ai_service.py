@@ -12,7 +12,7 @@ class OpenAIService:
     and perform problem category diagnosis from intake data.
     """
 
-    MODEL = 'gpt-4o'
+    MODEL = 'gpt-4.1'
     BASE_URL = 'https://api.openai.com/v1/chat/completions'
 
     # ── Token budget: ~900 tokens/minute of audio at average speech rate ──
@@ -24,7 +24,7 @@ class OpenAIService:
     # We cap at 16,000 to stay within the model's hard output limit.
     TOKENS_PER_MINUTE = 900
     TOKEN_OVERHEAD = 2000     # prompt echoing + formatting overhead
-    MAX_OUTPUT_CAP = 16000    # hard cap for gpt-4o output tokens
+    MAX_OUTPUT_CAP = 64000    # increased hard cap for gpt-4.1 to support 45+ min sessions in a single pass
     DEFAULT_MAX_TOKENS = 11000
 
     def __init__(self):
