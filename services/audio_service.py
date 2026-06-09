@@ -224,27 +224,47 @@ class AudioService:
 
     def mix_audio_with_background(self, voice_bytes: bytes, music_bytes: bytes, volume_reduction: int = 15) -> bytes:
         """
-        Overlays the voice track over the background music track.
-        Loops the music track if it's shorter than the voice track.
-        Reduces the volume of the music track by `volume_reduction` dB.
+        Overlays the voice track over the background music track using ffmpeg directly 
+        to avoid massive RAM usage (OOM) on long 30+ min sessions.
         """
-        voice = AudioSegment.from_file(io.BytesIO(voice_bytes))
-        music = AudioSegment.from_file(io.BytesIO(music_bytes))
+        import subprocess
+        import tempfile
+        import os
 
-        # Reduce volume of music
-        music = music - volume_reduction
+        vol_db = f"-{volume_reduction}dB"
 
-        # Loop the music to match the voice length
-        if len(music) < len(voice):
-            loops = (len(voice) // len(music)) + 1
-            music = music * loops
+        with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as f_voice, \
+             tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as f_music, \
+             tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as f_out:
+             
+            f_voice.write(voice_bytes)
+            f_voice.flush()
+            
+            f_music.write(music_bytes)
+            f_music.flush()
 
-        # Trim music to exact voice length
-        music = music[:len(voice)]
-
-        # Mix them
-        combined = music.overlay(voice)
-
-        output = io.BytesIO()
-        combined.export(output, format="mp3", bitrate="128k")
-        return output.getvalue()
+            cmd = [
+                "ffmpeg",
+                "-y",
+                "-stream_loop", "-1",
+                "-i", f_music.name,
+                "-i", f_voice.name,
+                "-filter_complex", f"[0:a]volume={vol_db}[bg];[bg][1:a]amix=inputs=2:duration=shortest[out]",
+                "-map", "[out]",
+                "-c:a", "libmp3lame",
+                "-b:a", "128k",
+                f_out.name
+            ]
+            
+            try:
+                subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                with open(f_out.name, "rb") as result_file:
+                    return result_file.read()
+            except subprocess.CalledProcessError as e:
+                logger.error("FFmpeg mixing failed: %s", e.stderr.decode('utf-8', errors='ignore'))
+                logger.warning("Falling back to voice-only output due to mix failure.")
+                return voice_bytes
+            finally:
+                os.unlink(f_voice.name)
+                os.unlink(f_music.name)
+                os.unlink(f_out.name)
