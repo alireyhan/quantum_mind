@@ -1,4 +1,5 @@
 import logging
+import re
 import httpx
 from django.conf import settings
 from typing import Dict, Any
@@ -161,7 +162,9 @@ class OpenAIService:
         scores: Dict[str, int] = {cat: 0 for cat in category_keywords}
         for category, keywords in category_keywords.items():
             for keyword in keywords:
-                scores[category] += text.count(keyword)
+                # Use word boundaries (\b) to match whole words and prevent substring matches
+                pattern = r'\b' + re.escape(keyword) + r'\b'
+                scores[category] += len(re.findall(pattern, text))
 
         best = max(scores, key=scores.get)
         if scores[best] == 0:
