@@ -14,12 +14,15 @@ class IntakeCreateView(generics.CreateAPIView):
     def perform_create(self, serializer):
         ai_service = OpenAIService()
         data = serializer.validated_data
-        # Auto-diagnose the problem category before persisting
-        category = ai_service.diagnose_problem_category({
-            'main_issue': data.get('main_issue', ''),
-            'triggers': data.get('triggers', []),
-            'symptoms': data.get('symptoms', []),
-        })
+        
+        category = data.get('problem_category')
+        if not category:
+            # Auto-diagnose the problem category before persisting
+            category = ai_service.diagnose_problem_category({
+                'main_issue': data.get('main_issue', ''),
+                'triggers': data.get('triggers', []),
+                'symptoms': data.get('symptoms', []),
+            })
         serializer.save(user=self.request.user, problem_category=category)
 
 

@@ -4,6 +4,8 @@ from .models import IntakeResponse
 
 
 class IntakeResponseSerializer(serializers.ModelSerializer):
+    category = serializers.CharField(source='problem_category', required=False, allow_blank=True)
+
     class Meta:
         model = IntakeResponse
         fields = '__all__'
@@ -41,9 +43,11 @@ class IntakeResponseSerializer(serializers.ModelSerializer):
 
 class IntakeResponseListSerializer(serializers.ModelSerializer):
     """Lighter serializer for list views."""
+    category = serializers.CharField(source='problem_category', read_only=True)
+
     class Meta:
         model = IntakeResponse
         fields = [
-            'id', 'main_issue', 'problem_category',
+            'id', 'main_issue', 'problem_category', 'category',
             'session_duration_minutes', 'created_at',
         ]

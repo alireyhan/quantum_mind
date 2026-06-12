@@ -70,6 +70,11 @@ class SessionCreateView(generics.CreateAPIView):
         # Deduct credits atomically
         credit_service.deduct_credits(user, duration, transaction_type='session_use')
 
+        # Determine category
+        category = serializer.validated_data.get('category')
+        if not category and intake:
+            category = intake.problem_category
+
         # Create the session record
         session = TherapySession.objects.create(
             user=user,
@@ -77,7 +82,7 @@ class SessionCreateView(generics.CreateAPIView):
             duration_minutes=duration,
             credits_used=duration,
             language=language,
-            problem_category=intake.problem_category,
+            problem_category=category or '',
             program_day_id=program_day_id,
             status=TherapySession.STATUS_PENDING,
         )
